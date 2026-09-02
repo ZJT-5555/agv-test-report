@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AGV 启停与速度调节测试报告 - 2026-09-01</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --text: #17202a;
+      --muted: #65717e;
+      --line: #d9e0e7;
+      --blue: #2563eb;
+      --green: #16805c;
+      --orange: #b96b00;
+      --red: #c43d3d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.65 system-ui, -apple-system, "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    }
+    main { max-width: 1180px; margin: 0 auto; padding: 34px 22px 56px; }
+    h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.25; }
+    h2 { margin: 34px 0 12px; font-size: 21px; }
+    h3 { margin: 20px 0 8px; font-size: 17px; }
+    p { margin: 7px 0; }
+    .subtitle, .source { color: var(--muted); }
+    .subtitle { margin-bottom: 24px; }
+    .notice {
+      border-left: 5px solid var(--orange);
+      background: #fff8e8;
+      padding: 14px 17px;
+      margin: 20px 0;
+    }
+    .notice strong { color: #8b5300; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin: 20px 0 28px;
+    }
+    .stat, .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .stat { padding: 14px 16px; }
+    .stat .value { font-size: 25px; font-weight: 700; }
+    .stat .label { color: var(--muted); font-size: 13px; }
+    .success { color: var(--green); }
+    .warning { color: var(--orange); }
+    .danger { color: var(--red); }
+    .info { color: var(--blue); }
+    .panel { padding: 17px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 10px 11px; vertical-align: top; }
+    th { background: #f0f3f7; font-weight: 650; }
+    tr:last-child td { border-bottom: 0; }
+    .tag { white-space: nowrap; font-weight: 650; }
+    .chart-title { font-weight: 650; margin-bottom: 8px; }
+    svg { display: block; width: 100%; height: auto; min-width: 760px; }
+    .chart-wrap { overflow-x: auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+    .evidence { padding-left: 20px; }
+    code { background: #eef2f6; border-radius: 4px; padding: 1px 5px; }
+    footer { color: var(--muted); font-size: 13px; margin-top: 30px; }
+    @media (max-width: 600px) {
+      main { padding: 24px 14px 44px; }
+      h1 { font-size: 24px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>AGV 启停与速度调节测试报告</h1>
+  <p class="subtitle">测试日期：2026-09-01　|　测试对象：导航启停、加减速、最高速度和速度切换</p>
+
+  <div class="notice">
+    <strong>综合结论：部分通过。</strong>
+    导航往返 23/23 成功，起步斜坡和最高速度输出符合当前配置；但日志没有独立的暂停/取消指令记录，
+    且出现多次短暂零速输出，因此“暂停功能”和“速度切换无卡顿”尚不能判定完全通过。
+  </div>
+
+  <section class="stats">
+    <div class="stat"><div class="value success">23/23</div><div class="label">导航目标成功率</div></div>
+    <div class="stat"><div class="value info">1.00 m/s</div><div class="label">最终指令最高线速度</div></div>
+    <div class="stat"><div class="value">0.05 m/s</div><div class="label">每 50 ms 的平滑加速步进</div></div>
+    <div class="stat"><div class="value warning">68 次</div><div class="label">仲裁器零速输出记录</div></div>
+    <div class="stat"><div class="value danger">0 条</div><div class="label">明确暂停/取消记录</div></div>
+  </section>
+
+  <h2>一、测试数据</h2>
+  <div class="panel">
+    <table>
+      <thead><tr><th>测试项目</th><th>日志数据</th><th>判定</th></tr></thead>
+      <tbody>
+        <tr><td>启动响应</td><td>速度记录中首次非零最终指令延迟约 0.05–0.15 s。</td><td class="tag success">基本通过</td></tr>
+        <tr><td>加速平滑</td><td>平滑器从 0.00 m/s 按约 0.05 m/s、50 ms 一步上升。</td><td class="tag success">通过</td></tr>
+        <tr><td>最高速度</td><td>117 组速度记录达到 <code>cmd_vx=1.00 m/s</code>，最终指令受到 1.00 m/s 限幅。</td><td class="tag success">通过</td></tr>
+        <tr><td>目标点减速</td><td>多次出现 1.00 → 0.55 → 0.30 → 0.13 → 0.06 → 0 m/s 的渐进过程。</td><td class="tag success">通过</td></tr>
+        <tr><td>停止响应</td><td>23 个导航目标均出现 <code>Goal succeeded</code>；记录 24 次 navigation→align、24 次 align→locked。</td><td class="tag success">导航到点停止通过</td></tr>
+        <tr><td>暂停指令</td><td>日志未出现明确 pause、cancel 或 cancelled 事件。</td><td class="tag danger">未测试/无法判定</td></tr>
+        <tr><td>速度切换</td><td>记录 68 次零速输出，部分运行中零速后又恢复非零速度。</td><td class="tag warning">需要复测</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>二、代表性起步加速曲线</h2>
+  <div class="panel">
+    <div class="chart-title">线速度随采样时间变化（单位：m/s）</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 900 330" role="img" aria-label="控制器与平滑器线速度加速曲线">
+        <rect x="70" y="20" width="790" height="255" fill="#fbfcfd" stroke="#d9e0e7"/>
+        <line x1="70" y1="275" x2="860" y2="275" stroke="#9aa6b2"/>
+        <line x1="70" y1="20" x2="70" y2="275" stroke="#9aa6b2"/>
+        <line x1="70" y1="147.5" x2="860" y2="147.5" stroke="#e5e9ee"/>
+        <line x1="70" y1="20" x2="860" y2="20" stroke="#e5e9ee"/>
+        <text x="40" y="280" font-size="12">0.0</text>
+        <text x="40" y="152" font-size="12">0.5</text>
+        <text x="40" y="25" font-size="12">1.0</text>
+        <text x="440" y="316" font-size="12">时间（s）</text>
+        <text x="9" y="155" font-size="12" transform="rotate(-90 9 155)">线速度（m/s）</text>
+        <polyline fill="none" stroke="#2563eb" stroke-width="3"
+          points="70,275 109.5,262.25 149,249.5 188.5,236.75 228,224 267.5,211.25 307,198.5 346.5,185.75 386,173 425.5,160.25 465,147.5 504.5,134.75 544,122 583.5,109.25 623,96.5 662.5,83.75 702,71 741.5,58.25 781,45.5 820.5,32.75 860,20"/>
+        <polyline fill="none" stroke="#16805c" stroke-width="3" stroke-dasharray="7 5"
+          points="70,275 109.5,262.25 149,249.5 188.5,236.75 228,224 267.5,211.25 307,198.5 346.5,185.75 386,173 425.5,160.25 465,147.5 504.5,134.75 544,122 583.5,109.25 623,96.5 662.5,83.75 702,71 741.5,58.25 781,45.5 820.5,32.75 860,20"/>
+        <line x1="70" y1="20" x2="860" y2="20" stroke="#b96b00" stroke-width="2" stroke-dasharray="5 5"/>
+        <text x="730" y="15" font-size="12" fill="#8b5300">最高速度 1.00 m/s</text>
+        <line x1="660" y1="296" x2="690" y2="296" stroke="#2563eb" stroke-width="3"/>
+        <text x="697" y="300" font-size="12">controller_vx</text>
+        <line x1="790" y1="296" x2="820" y2="296" stroke="#16805c" stroke-width="3" stroke-dasharray="7 5"/>
+        <text x="827" y="300" font-size="12">smoothed_vx</text>
+      </svg>
+    </div>
+    <p class="source">来源：<code>/home/ysb/log/rpp_tracking/20260901_180858/velocity.csv</code> 前 21 个采样点。</p>
+  </div>
+
+  <h2>三、往返导航稳定性</h2>
+  <div class="panel">
+    <div class="chart-title">代表性导航任务耗时（单位：秒）</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 900 330" role="img" aria-label="导航任务耗时柱状图">
+        <rect x="70" y="20" width="790" height="255" fill="#fbfcfd" stroke="#d9e0e7"/>
+        <line x1="70" y1="275" x2="860" y2="275" stroke="#9aa6b2"/>
+        <line x1="70" y1="20" x2="70" y2="275" stroke="#9aa6b2"/>
+        <line x1="70" y1="147.5" x2="860" y2="147.5" stroke="#e5e9ee"/>
+        <line x1="70" y1="20" x2="860" y2="20" stroke="#e5e9ee"/>
+        <text x="42" y="280" font-size="12">0</text>
+        <text x="37" y="152" font-size="12">25</text>
+        <text x="37" y="25" font-size="12">50</text>
+        <text x="440" y="316" font-size="12">任务序号（按日志时间）</text>
+        <text x="9" y="155" font-size="12" transform="rotate(-90 9 155)">耗时（s）</text>
+        <g fill="#2563eb">
+          <rect x="83" y="248.7" width="36" height="26.3"/><rect x="133" y="194.8" width="36" height="80.2"/>
+          <rect x="183" y="195.2" width="36" height="79.8"/><rect x="233" y="199.7" width="36" height="75.3"/>
+          <rect x="283" y="194.8" width="36" height="80.2"/><rect x="333" y="195.6" width="36" height="79.4"/>
+          <rect x="383" y="19.2" width="36" height="255.8" fill="#b96b00"/><rect x="433" y="195.6" width="36" height="79.4"/>
+          <rect x="483" y="181.3" width="36" height="93.7"/><rect x="533" y="189.2" width="36" height="85.8"/>
+          <rect x="583" y="216.5" width="36" height="58.5"/><rect x="633" y="216.3" width="36" height="58.7"/>
+          <rect x="683" y="214.8" width="36" height="60.2"/><rect x="733" y="217.3" width="36" height="57.7"/>
+          <rect x="783" y="216.3" width="36" height="58.7"/>
+        </g>
+        <text x="388" y="14" font-size="12" fill="#8b5300">50.15 s 异常长任务</text>
+      </svg>
+    </div>
+    <p class="source">23 次导航均成功；耗时范围 5.15–50.15 s，平均 17.55 s，中位数 15.63 s。</p>
+  </div>
+
+  <h2>四、关键日志证据</h2>
+  <div class="panel">
+    <ul class="evidence">
+      <li>17:49:20.495 开始第一个导航目标，17:49:25.646 成功；持续往返至 18:09:09.782。</li>
+      <li>速度仲裁器记录：navigation→align 24 次、align→locked 24 次、locked→navigation 23 次。</li>
+      <li>安全监控启动阶段出现 2 条 unhealthy，随后恢复 healthy；未显示持续故障锁车。</li>
+      <li>代表性速度记录中 filtered_vx 峰值约 1.142 m/s，高于 1.000 m/s 最终指令约 14.2%。</li>
+      <li>零速输出日志中的原因统一记录为 timeout、lock 或 idle，现有日志不能单独区分具体原因。</li>
+    </ul>
+  </div>
+
+  <h2>五、按测试标准判定</h2>
+  <div class="panel">
+    <table>
+      <thead><tr><th>测试标准</th><th>结论</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>指令响应及时</td><td class="tag success">基本通过</td><td>有导航目标进入和速度输出证据，但没有外部按钮时间戳，无法精确计算端到端响应时间。</td></tr>
+        <tr><td>启停平稳无冲击</td><td class="tag warning">部分通过</td><td>加速斜坡清晰；正常到点有渐进减速，但缺少 IMU 加速度/冲击峰值数据。</td></tr>
+        <tr><td>速度稳定</td><td class="tag warning">基本通过</td><td>最终指令上限稳定为 1.00 m/s；滤波速度存在约 11%–14% 超调。</td></tr>
+        <tr><td>速度切换无卡顿</td><td class="tag danger">未完全通过</td><td>存在零速输出记录，需要区分正常模式切换和输入超时造成的短暂停顿。</td></tr>
+        <tr><td>暂停功能</td><td class="tag danger">未完成</td><td>2026-09-01 日志没有独立暂停、恢复测试记录。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    数据来源：/home/ysb/log/bt_navigator_20260901_174850_009642.log；
+    /home/ysb/log/velocity_arbiter_20260901_174849_883572.log；
+    /home/ysb/log/nav_safety_monitor_20260901_174849_843028.log；
+    /home/ysb/log/rpp_tracking/20260901_180858/velocity.csv。
+  </footer>
+</main>
+</body>
+</html>
